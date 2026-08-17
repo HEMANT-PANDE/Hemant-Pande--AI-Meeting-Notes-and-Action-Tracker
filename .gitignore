@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Environment variables — never commit real secrets/API keys
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# Next.js
+frontend/.next/
+frontend/out/
+frontend/next-env.d.ts
+
+# Backend build output
+backend/dist/
+
+# Prisma
+backend/prisma/*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+
+# Misc build artifacts
+*.tsbuildinfo
+coverage/
+
+# Claude Code harness-internal state — not part of the project
+.claude/
+
+# Assessment problem statement — not part of the submission
+Task1-Zignuts AI-Native Campus Hiring Challenge*.pdf

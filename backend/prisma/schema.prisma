@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String    @id @default(cuid())
+  name         String
+  email        String    @unique
+  passwordHash String
+  meetings     Meeting[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+}
+
+enum MeetingType {
+  CLIENT_MEETING
+  SALES_MEETING
+  PROJECT_MEETING
+  INTERNAL_MEETING
+  REQUIREMENT_DISCUSSION
+  RETROSPECTIVE
+  OTHER
+}
+
+enum AiStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+model Meeting {
+  id        String      @id @default(cuid())
+  title     String
+  date      DateTime
+  type      MeetingType @default(OTHER)
+
+  // Stored as a simple string array; the UI splits on comma at entry time.
+  participants String[]
+
+  transcript       String
+  // "pasted" | "uploaded" — informational only, doesn't change storage.
+  transcriptSource String @default("pasted")
+
+  // Manual, user-authored notes — HTML from the rich text editor (Tiptap).
+  // Kept separate from `transcript`, which must stay plain text so it can
+  // round-trip through file upload and feed the AI prompt without stripping.
+  notes String?
+
+  // --- AI-generated fields (nullable until AI has run successfully) ---
+  summary             String?
+  keyDiscussionPoints Json?
+  keyDecisions        Json?
+  risks               Json?
+  unansweredQuestions Json?
+  aiStatus            AiStatus  @default(PENDING)
+  aiError             String?
+  aiGeneratedAt       DateTime?
+
+  owner   User   @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  ownerId String
+
+  actionItems ActionItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([date])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ActionStatus {
+  OPEN
+  IN_PROGRESS
+  BLOCKED
+  COMPLETED
+}
+
+model ActionItem {
+  id          String  @id @default(cuid())
+  meeting     Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+  meetingId   String
+
+  description String
+  // Null is rendered as "Unassigned" by the frontend.
+  owner       String?
+  // Null is rendered as "Not specified" by the frontend.
+  dueDate     DateTime?
+  priority    Priority     @default(MEDIUM)
+  status      ActionStatus @default(OPEN)
+  // "ai" | "manual" — lets the UI badge AI-extracted items.
+  source      String       @default("manual")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([meetingId])
+  @@index([status])
+  @@index([priority])
+  @@index([dueDate])
+}
