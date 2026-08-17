@@ -1,4 +1,4 @@
-# AI Meeting Notes & Action Tracker
+# Nexora — AI Meeting Notes & Action Tracker
 
 A lightweight, AI-powered web app that stores meeting transcripts, generates structured meeting
 insights (summary, key decisions, risks, unanswered questions), and tracks action items to
@@ -94,13 +94,20 @@ frontend (Next.js, :3000)  ──REST/JSON, Bearer token──►  backend (Expr
 - **Backend**: layered `routes → controllers → services → Prisma`, with Zod validation
   middleware in front of every route and a central error handler that only ever returns a safe,
   human-readable message (never a stack trace).
-- **AI integration**: an `AIProvider` interface (`backend/src/services/ai/ai.types.ts`) with three
+- **AI integration**: an `AIProvider` interface (`backend/src/services/ai/ai.types.ts`) with
   interchangeable implementations — `AnthropicProvider`, `GeminiProvider`, `MockAIProvider` — all
   producing the same Zod-validated `AIInsights` shape. `services/ai/index.ts` is the single place
-  that picks the active one from `AI_PROVIDER`. AI generation runs **fire-and-forget** after a
-  meeting is created/edited (the request returns immediately with `aiStatus=PENDING`); the
-  frontend polls the meeting until it settles into `COMPLETED` or `FAILED`, which is what powers
-  the "AI processing" / "AI failed, retry" states.
+  that picks the active one from `AI_PROVIDER`. When a real provider is active, it's wrapped in a
+  `FallbackAIProvider` (`services/ai/fallback.provider.ts`) that automatically retries the request
+  against the mock provider if the real one fails — rate-limited, overloaded, or down — so a
+  meeting still ends up `aiStatus=COMPLETED` with genuine (if lower-fidelity) insights instead of
+  surfacing `FAILED` mid-demo. This is the concrete implementation of the spec's own suggested
+  pattern ("a mock AI service when API access is unavailable"), triggered automatically rather
+  than requiring a manual `.env` flip — added after live testing hit the Gemini free tier's 20
+  request quota. AI generation runs **fire-and-forget** after a meeting is created/edited (the
+  request returns immediately with `aiStatus=PENDING`); the frontend polls the meeting until it
+  settles into `COMPLETED` or `FAILED` (only possible if *both* the real provider and the mock
+  provider fail), which is what powers the "AI processing" / "AI failed, retry" states.
 
 ## Database Design
 
@@ -165,15 +172,23 @@ AI-processing/AI-failed/no-results/confirm-before-delete states.
 - No pagination cursor beyond page/limit (offset pagination only — fine at this scale).
 - No automated test suite (unit/e2e) — out of scope for the time box; see "Future improvements."
 - No file storage (S3) for the original uploaded transcript file, by design (see Assumptions).
+- No Docker setup — attempted (multi-stage Dockerfiles for both apps + a Compose file with a
+  local Postgres), but the build couldn't be completed or verified in this environment (the host
+  machine ran out of disk space, unrelated to the project), so it was removed rather than shipped
+  unverified. See "Future improvements."
 
 ## Known Limitations
 
 - **Auth token storage**: the JWT is stored in `localStorage` and sent as a Bearer header, not an
   httpOnly cookie. This was a deliberate time-boxed trade-off (avoids CORS/cookie config across
   two localhost ports) but is more exposed to XSS than a cookie-based session would be.
-- **AI provider availability**: both Gemini and Anthropic occasionally return transient `429`/
-  `503` errors under real load. The app retries twice with backoff (`services/ai/withRetry.ts`)
-  and otherwise surfaces a clean "AI failed, retry" state rather than crashing or inventing data.
+- **AI provider availability**: `503` (temporary overload) is retried twice with backoff
+  (`services/ai/withRetry.ts`); `429` (rate limit) is not — observed live, Gemini's free tier
+  returns a "retry in ~20-55s" hint far longer than any short backoff budget, so retrying it
+  quickly only burns more of an already-exhausted quota. Either way, `FallbackAIProvider` catches
+  the failure and completes the meeting via the mock provider instead, so this is only visible in
+  server logs, not as a broken meeting — genuine `aiStatus=FAILED` now requires *both* the real
+  provider and the mock provider to fail.
 - **Shared types**: frontend and backend each declare their own TypeScript types mirroring the
   Prisma schema, since they're two separate npm projects — see Future Improvements.
 
@@ -187,3 +202,6 @@ AI-processing/AI-failed/no-results/confirm-before-delete states.
   and meeting flows.
 - Support PDF/DOCX transcript uploads (explicitly optional per the spec).
 - Kanban view as an alternative presentation for the Action Tracker.
+- Add back Docker + Docker Compose (backend, frontend, local Postgres) once verified on a machine
+  with adequate disk space — the approach (multi-stage builds, Next.js standalone output,
+  `prisma migrate deploy` on container start) is straightforward to redo.

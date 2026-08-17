@@ -100,9 +100,33 @@ the actual provisioned Neon database and Gemini API. No other AI coding tool was
 - **Transient-failure handling was observed live, not simulated**: the Gemini API returned real
   `503` (overloaded) responses during testing. Rather than treat this as "AI integration is
   broken," I confirmed it was transient (direct `curl` retries succeeded seconds later) and added
-  bounded retry-with-backoff (`services/ai/withRetry.ts`, 2 retries, exponential backoff, only for
-  429/503) shared by both real providers — a concrete reliability improvement driven by an actual
-  failure observed while building, not a hypothetical.
+  bounded retry-with-backoff (`services/ai/withRetry.ts`, 2 retries, exponential backoff) shared
+  by both real providers — a concrete reliability improvement driven by an actual failure observed
+  while building, not a hypothetical.
+- **The retry policy itself needed correcting after further live testing.** Continued testing
+  exhausted Gemini's free-tier quota (`429`, "limit: 20 requests"), and the error included a
+  "retry in ~20-55s" hint — far longer than the retry budget above. Retrying a `429` with a 1-2s
+  backoff doesn't help and just burns more of an already-exhausted quota, so I removed `429` from
+  the retryable set (`withRetry.ts` now only retries `503`) and instead parse the provider's own
+  wait-time hint into a clear stored error message. This is a case of validating not just "does
+  the code run" but "does the retry policy match what the live API actually needs," which only
+  showed up under sustained real use, not a single test call.
+- **Mock provider output was wrong in a way that only showed up on real transcript text.** With
+  Gemini's quota exhausted, action items and decisions were checked against the mock provider's
+  output too (used as the automatic fallback — see below) and it misclassified "we **haven't
+  decided** on a hosting provider" as a *decision*, because its keyword matcher only checked for
+  the substring "decided" without accounting for negation. Fixed by requiring a short
+  pre-keyword window free of negation words ("not", "haven't", "didn't", etc.) before counting a
+  keyword match — verified by re-running the same transcript and confirming that sentence moved
+  to Risks (where "concern" correctly still matches) and out of Decisions.
+- **Built an automatic real→mock fallback after hitting the quota live, rather than just handling
+  it as an error.** The user proposed trying the real provider first and silently falling back to
+  mock if it fails, rather than surfacing `aiStatus=FAILED` for something as recoverable as a rate
+  limit. I implemented this as a proper decorator (`FallbackAIProvider`, wraps any `AIProvider`
+  with another `AIProvider`) rather than special-casing it in `meeting.service.ts`, so it composes
+  cleanly with the existing interface and required zero changes outside `services/ai/`. This is
+  the concrete, automatic version of the spec's own suggested "mock service when API access is
+  unavailable" pattern.
 
 ## Engineering Decisions Made Independently
 

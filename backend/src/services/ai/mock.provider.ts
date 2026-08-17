@@ -18,6 +18,13 @@ const LOW_PRIORITY_HINTS = ["when possible", "low priority", "no rush", "eventua
 
 const SPEAKER_LINE = /^\s*([A-Z][\w.'-]*(?:\s[A-Z][\w.'-]*)?)\s*:\s*(.+)$/;
 const DATE_HINT = /\b(by\s+\w+\s?\d{0,2}|next\s+\w+|tomorrow|today|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?|\w+\s+\d{1,2}(?:st|nd|rd|th)?)\b/i;
+// Guards every keyword match below against simple negation — without this,
+// "we haven't decided on a hosting provider" matches the DECISION keyword
+// "decided" and gets reported as a decision, which is the opposite of what
+// the transcript says. Checked in a short window immediately before the
+// keyword, not the whole sentence, so it doesn't over-suppress unrelated
+// negatives elsewhere in a long sentence.
+const NEGATION_PATTERN = /\b(?:not|never|n't|no|isn't|wasn't|hasn't|haven't|didn't|doesn't|won't|can't|couldn't)\b/i;
 
 function splitSentences(text: string): string[] {
   return text
@@ -27,9 +34,16 @@ function splitSentences(text: string): string[] {
     .filter((s) => s.length > 3);
 }
 
+function isNegatedNear(lowerText: string, keyword: string): boolean {
+  const idx = lowerText.indexOf(keyword);
+  if (idx === -1) return false;
+  const window = lowerText.slice(Math.max(0, idx - 25), idx);
+  return NEGATION_PATTERN.test(window);
+}
+
 function containsAny(text: string, keywords: string[]): boolean {
   const lower = text.toLowerCase();
-  return keywords.some((k) => lower.includes(k));
+  return keywords.some((k) => lower.includes(k) && !isNegatedNear(lower, k));
 }
 
 function extractSpeaker(sentence: string): { owner: string | null; content: string } {

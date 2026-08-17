@@ -25,7 +25,7 @@ export default function DashboardPage() {
         <p className="text-sm text-muted">An overview of your meetings and action items.</p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <StatCard label="Total Meetings" value={data.totalMeetings} icon={Users} />
         <StatCard label="Total Action Items" value={data.totalActionItems} icon={ClipboardList} />
         <StatCard label="Open Action Items" value={data.openActionItems} icon={ListTodo} tone="warning" />

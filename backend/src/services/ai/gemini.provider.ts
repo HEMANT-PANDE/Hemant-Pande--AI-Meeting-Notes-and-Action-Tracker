@@ -110,6 +110,18 @@ export class GeminiProvider implements AIProvider {
     if (!response.ok) {
       const errorBody = await response.text().catch(() => "");
       logger.error("Gemini API request failed", { status: response.status, body: errorBody.slice(0, 500) });
+
+      if (response.status === 429) {
+        // Surface something a user can actually act on, instead of a bare
+        // "429" — free-tier quota errors include a "retry in Ns" hint.
+        const retryMatch = errorBody.match(/retry in ([\d.]+)s/i);
+        const waitHint = retryMatch ? ` Try again in about ${Math.ceil(Number(retryMatch[1]))}s.` : "";
+        throw new AIProviderError(
+          `Gemini rate limit reached (free-tier quota).${waitHint}`,
+          response.status
+        );
+      }
+
       throw new AIProviderError(`Gemini API returned ${response.status}`, response.status);
     }
 

@@ -1,8 +1,8 @@
 {
-  "name": "ai-meeting-tracker-backend",
+  "name": "nexora-backend",
   "version": "1.0.0",
   "private": true,
-  "description": "Express + Prisma backend for the AI Meeting Notes & Action Tracker",
+  "description": "Express + Prisma backend for Nexora — AI Meeting Notes & Action Tracker",
   "main": "dist/server.js",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
@@ -22,6 +22,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "prisma": "^5.20.0",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -31,7 +32,6 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.14.11",
-    "prisma": "^5.20.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.5.4"
   }

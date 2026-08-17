@@ -16,8 +16,10 @@ export function MeetingCard({ meeting }: { meeting: MeetingListItem }) {
       <Card className="h-full transition-colors hover:border-primary/50">
         <CardBody className="flex h-full flex-col gap-3">
           <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium text-foreground">{meeting.title}</h3>
-            <AiStatusBadge status={meeting.aiStatus} />
+            <h3 className="min-w-0 flex-1 break-words font-medium text-foreground">{meeting.title}</h3>
+            <div className="shrink-0">
+              <AiStatusBadge status={meeting.aiStatus} />
+            </div>
           </div>
           <span className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
             {MEETING_TYPE_LABELS[meeting.type]}

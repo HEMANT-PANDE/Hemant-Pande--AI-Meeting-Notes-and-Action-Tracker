@@ -115,7 +115,7 @@ export function ActionItemModal({ open, item, submitting, meetings, onClose, onS
             <Textarea id="description" rows={3} {...register("description")} />
           </FormField>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <FormField label="Owner" htmlFor="owner" hint="Leave blank for Unassigned">
               <Input id="owner" {...register("owner")} />
             </FormField>

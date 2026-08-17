@@ -90,11 +90,11 @@ export default function MeetingDetailPage({ params }: { params: Promise<{ id: st
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-        <div>
+        <div className="min-w-0 flex-1">
           <span className="w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-medium text-primary">
             {MEETING_TYPE_LABELS[meeting.type]}
           </span>
-          <h1 className="mt-2 text-xl font-semibold text-foreground">{meeting.title}</h1>
+          <h1 className="mt-2 break-words text-xl font-semibold text-foreground">{meeting.title}</h1>
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
             <span className="flex items-center gap-1.5">
               <CalendarDays className="h-4 w-4" />

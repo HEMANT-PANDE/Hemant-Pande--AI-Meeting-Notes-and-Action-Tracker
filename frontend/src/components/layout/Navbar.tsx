@@ -24,7 +24,7 @@ export function Navbar() {
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-4">
         <div className="flex items-center gap-6">
           <Link href="/dashboard" className="font-semibold text-foreground">
-            Meeting Tracker
+            Nexora
           </Link>
           <nav className="hidden items-center gap-1 md:flex">
             {links.map((link) => {
